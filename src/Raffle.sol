@@ -24,6 +24,7 @@ pragma solidity 0.8.19;
 
 import {VRFConsumerBaseV2Plus} from "@chainlink/contracts/src/v0.8/vrf/dev/VRFConsumerBaseV2Plus.sol";
 import {VRFV2PlusClient} from "@chainlink/contracts/src/v0.8/vrf/dev/libraries/VRFV2PlusClient.sol";
+import {Script, console} from "forge-std/Script.sol";
 
 /**
  * @title Raffle Contract
@@ -65,6 +66,7 @@ contract Raffle is VRFConsumerBaseV2Plus {
     //events
     event RaffleEnter(address indexed player);
     event WinnerPicked(address indexed player);
+    event RequestedRaffleWinner(uint256 indexed requestId);
 
     constructor(
         uint256 entranceFee,
@@ -141,7 +143,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
                 )
             });
 
-        s_vrfCoordinator.requestRandomWords(request);
+        uint requestId = s_vrfCoordinator.requestRandomWords(request);
+        emit RequestedRaffleWinner(requestId);
     }
 
     function fulfillRandomWords(
@@ -155,6 +158,8 @@ contract Raffle is VRFConsumerBaseV2Plus {
         s_raffleState = RaffleState.OPEN;
         s_players = new address payable[](0);
         s_lastTImeStamp = block.timestamp;
+        console.log("Your subscription Id is: ", s_players.length);
+        console.log("Your subscription Id is: ", indexOfWinner);
         emit WinnerPicked(winner);
 
         (bool success, ) = winner.call{value: address(this).balance}("");
@@ -173,5 +178,13 @@ contract Raffle is VRFConsumerBaseV2Plus {
 
     function getPlayer(uint256 indexOfPlayers) external view returns (address) {
         return s_players[indexOfPlayers];
+    }
+
+    function getLastTimeStamp() external view returns (uint256) {
+        return s_lastTImeStamp;
+    }
+
+    function getRecentWinner() external view returns (address) {
+        return s_recentWinner;
     }
 }
